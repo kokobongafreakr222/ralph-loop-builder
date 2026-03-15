@@ -164,7 +164,7 @@ function buildCommand() {
   const promiseNeedsQuoting = promise && /['"$`\\!{}()|<>&;\n\t #~]/.test(promise);
 
   // Build DOM
-  outputEl.appendChild(span('cmd', '/ralph-loop:ralph-loop'));
+  outputEl.appendChild(span('cmd', '/ralph-loop-local:ralph-loop'));
   outputEl.appendChild(document.createTextNode(' '));
 
   if (needsQuoting) {
