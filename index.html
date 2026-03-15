@@ -4,126 +4,327 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ralph Loop Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
+  :root {
+    --phosphor: #33ff66;
+    --phosphor-dim: #1a8033;
+    --phosphor-glow: rgba(51, 255, 102, 0.08);
+    --amber: #ffaa33;
+    --amber-dim: #805516;
+    --red: #ff4444;
+    --bg: #050505;
+    --surface: #0a0f0a;
+    --surface-border: #152015;
+    --text: #b0c8b0;
+    --text-dim: #4a6a4a;
+    --text-muted: #2a3a2a;
+  }
+
   * { margin: 0; padding: 0; box-sizing: border-box; }
+
   body {
-    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
-    background: #0a0a0a;
-    color: #e0e0e0;
+    font-family: 'IBM Plex Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
     min-height: 100vh;
     display: flex;
     justify-content: center;
-    padding: 40px 20px;
+    padding: 48px 20px;
+    position: relative;
+    overflow-x: hidden;
   }
-  .container { width: 100%; max-width: 640px; }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.03) 2px,
+      rgba(0, 0, 0, 0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, var(--phosphor-glow) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 99;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 680px;
+    animation: boot 0.8s ease-out;
+  }
+
+  @keyframes boot {
+    0% { opacity: 0; transform: translateY(8px); }
+    40% { opacity: 0.7; }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  .header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 40px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--surface-border);
+  }
+
   h1 {
-    font-size: 18px;
-    font-weight: 600;
-    margin-bottom: 32px;
-    color: #fff;
-    letter-spacing: -0.02em;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--phosphor);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-shadow: 0 0 20px rgba(51, 255, 102, 0.3);
   }
-  h1 span { color: #666; font-weight: 400; }
-  .field { margin-bottom: 24px; }
+
+  .version {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-weight: 300;
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--phosphor);
+    box-shadow: 0 0 8px var(--phosphor);
+    animation: pulse 2s ease-in-out infinite;
+    margin-left: auto;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+
+  .field { margin-bottom: 28px; }
+
   label {
     display: block;
-    font-size: 12px;
-    color: #888;
+    font-size: 10px;
+    color: var(--text-dim);
     margin-bottom: 8px;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.12em;
+    font-weight: 500;
   }
-  label .hint { color: #555; text-transform: none; letter-spacing: 0; }
+
+  label .hint {
+    color: var(--text-muted);
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 300;
+  }
+
   textarea, input[type="text"], input[type="number"] {
     width: 100%;
-    background: #141414;
-    border: 1px solid #2a2a2a;
-    color: #e0e0e0;
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    color: var(--text);
     font-family: inherit;
-    font-size: 14px;
-    padding: 12px;
-    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 400;
+    padding: 14px;
+    border-radius: 4px;
     outline: none;
-    transition: border-color 0.15s;
+    transition: border-color 0.2s, box-shadow 0.2s;
   }
-  textarea:focus, input:focus { border-color: #444; }
-  textarea { resize: vertical; min-height: 100px; line-height: 1.5; }
-  input[type="number"] { max-width: 120px; -moz-appearance: textfield; }
-  input[type="number"]::-webkit-inner-spin-button { opacity: 1; }
+
+  textarea:focus, input:focus {
+    border-color: var(--phosphor-dim);
+    box-shadow: 0 0 0 1px var(--phosphor-dim), inset 0 0 20px rgba(51, 255, 102, 0.02);
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 110px;
+    line-height: 1.6;
+  }
+
+  textarea::placeholder, input::placeholder {
+    color: var(--text-muted);
+  }
+
+  input[type="number"] {
+    max-width: 120px;
+    -moz-appearance: textfield;
+  }
+  input[type="number"]::-webkit-inner-spin-button { opacity: 0.5; }
+
   .row { display: flex; gap: 20px; }
   .row .field { flex: 1; }
-  .output-area { margin-top: 32px; border-top: 1px solid #1a1a1a; padding-top: 24px; }
+
+  .output-area {
+    margin-top: 36px;
+    padding-top: 28px;
+    border-top: 1px solid var(--surface-border);
+  }
+
   .output-label {
-    font-size: 12px;
-    color: #888;
+    font-size: 10px;
+    color: var(--text-dim);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.12em;
+    font-weight: 500;
     margin-bottom: 12px;
     display: flex;
     align-items: center;
     justify-content: space-between;
   }
+
   .copy-btn {
-    background: none;
-    border: 1px solid #333;
-    color: #aaa;
+    background: transparent;
+    border: 1px solid var(--surface-border);
+    color: var(--text-dim);
     font-family: inherit;
-    font-size: 11px;
-    padding: 4px 10px;
-    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 5px 12px;
+    border-radius: 3px;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
   }
-  .copy-btn:hover { border-color: #555; color: #fff; }
-  .copy-btn.copied { border-color: #2d5a2d; color: #5a5; }
+
+  .copy-btn:hover {
+    border-color: var(--phosphor-dim);
+    color: var(--phosphor);
+  }
+
+  .copy-btn.copied {
+    border-color: var(--phosphor-dim);
+    color: var(--phosphor);
+    background: rgba(51, 255, 102, 0.05);
+  }
+
   .command-box {
-    background: #111;
-    border: 1px solid #222;
-    border-radius: 6px;
-    padding: 16px;
-    font-size: 13px;
-    line-height: 1.6;
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: 4px;
+    padding: 18px;
+    font-size: 12px;
+    line-height: 1.7;
     word-break: break-all;
     white-space: pre-wrap;
-    min-height: 48px;
-    color: #ccc;
+    min-height: 52px;
+    position: relative;
+    transition: box-shadow 0.3s;
   }
-  .cmd { color: #7ab; }
-  .arg { color: #b97; }
-  .flag { color: #7a7; }
-  .val { color: #b7b; }
-  .warnings { margin-top: 12px; font-size: 12px; color: #a77; line-height: 1.5; }
+
+  .command-box.active {
+    box-shadow: 0 0 30px rgba(51, 255, 102, 0.04);
+  }
+
+  .command-box .placeholder { color: var(--text-muted); }
+
+  .cmd {
+    color: var(--phosphor);
+    text-shadow: 0 0 10px rgba(51, 255, 102, 0.2);
+    font-weight: 500;
+  }
+  .arg { color: var(--text); }
+  .flag { color: var(--amber); }
+  .val { color: #88ccff; }
+
+  .warnings {
+    margin-top: 14px;
+    font-size: 11px;
+    color: var(--red);
+    line-height: 1.6;
+    font-weight: 300;
+  }
   .warnings:empty { display: none; }
-  .preview-info { margin-top: 16px; font-size: 11px; color: #555; line-height: 1.5; }
+
+  .preview-info {
+    margin-top: 14px;
+    font-size: 10px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    font-weight: 300;
+    letter-spacing: 0.02em;
+  }
+  .preview-info:empty { display: none; }
+
+  .footer {
+    margin-top: 48px;
+    padding-top: 16px;
+    border-top: 1px solid var(--surface-border);
+    font-size: 10px;
+    color: var(--text-muted);
+    display: flex;
+    justify-content: space-between;
+    letter-spacing: 0.02em;
+  }
+
+  .footer a {
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .footer a:hover { color: var(--phosphor-dim); }
+
+  @media (max-width: 480px) {
+    .row { flex-direction: column; gap: 0; }
+    input[type="number"] { max-width: 100%; }
+    body { padding: 24px 16px; }
+  }
 </style>
 </head>
 <body>
 <div class="container">
-  <h1>Ralph Loop Builder <span>v1.1.0</span></h1>
-  <div class="field">
-    <label>Промпт <span class="hint">— задача для Claude</span></label>
-    <textarea id="prompt" placeholder="Рефактори модуль /Users/malovnik/Documents/Dev/project/src/auth.ts и покрой тестами"></textarea>
+  <div class="header">
+    <h1>Ralph Loop</h1>
+    <span class="version">v1.1.0</span>
+    <div class="status-dot"></div>
   </div>
+
+  <div class="field">
+    <label>Prompt <span class="hint">— task for Claude</span></label>
+    <textarea id="prompt" placeholder="Рефактори модуль auth.ts и покрой тестами"></textarea>
+  </div>
+
   <div class="row">
     <div class="field">
-      <label>Итерации <span class="hint">— 0 = бесконечно</span></label>
+      <label>Iterations <span class="hint">— 0 = infinite</span></label>
       <input type="number" id="iterations" value="10" min="0" max="999">
     </div>
     <div class="field">
-      <label>Стоп-фраза <span class="hint">— пусто = нет</span></label>
-      <input type="text" id="promise" placeholder="Все тесты проходят">
+      <label>Stop phrase <span class="hint">— empty = none</span></label>
+      <input type="text" id="promise" placeholder="All tests passing">
     </div>
   </div>
+
   <div class="output-area">
     <div class="output-label">
-      Команда
+      Command
       <button class="copy-btn" id="copyBtn">Copy</button>
     </div>
     <div class="command-box" id="output"></div>
     <div class="warnings" id="warnings"></div>
     <div class="preview-info" id="info"></div>
   </div>
+
+  <div class="footer">
+    <span>ralph-loop-local@local</span>
+    <a href="https://github.com/kokobongafreakr222/ralph-loop" target="_blank">github</a>
+  </div>
 </div>
+
 <script>
 const promptEl = document.getElementById('prompt');
 const iterEl = document.getElementById('iterations');
@@ -154,16 +355,18 @@ function buildCommand() {
   infoEl.textContent = '';
 
   if (!prompt) {
-    outputEl.textContent = 'Введи промпт...';
-    outputEl.style.color = '#555';
+    const ph = document.createElement('span');
+    ph.className = 'placeholder';
+    ph.textContent = 'waiting for input...';
+    outputEl.appendChild(ph);
+    outputEl.classList.remove('active');
     return;
   }
-  outputEl.style.color = '';
+  outputEl.classList.add('active');
 
   const needsQuoting = /['"$`\\!{}()|<>&;\n\t #~]/.test(prompt);
   const promiseNeedsQuoting = promise && /['"$`\\!{}()|<>&;\n\t #~]/.test(promise);
 
-  // Build DOM
   outputEl.appendChild(span('cmd', '/ralph-loop-local:ralph-loop'));
   outputEl.appendChild(document.createTextNode(' '));
 
@@ -191,25 +394,23 @@ function buildCommand() {
     }
   }
 
-  // Warnings
   const warns = [];
   if (iterations === 0 && !promise) {
-    warns.push('Бесконечный цикл без стоп-фразы. Остановить только через /cancel-ralph');
+    warns.push('infinite loop without stop phrase \u2014 only /cancel-ralph stops it');
   }
   if (iterations === 0 && promise) {
-    warns.push('Без лимита итераций — крутится пока стоп-фраза не станет правдой');
+    warns.push('no iteration limit \u2014 runs until stop phrase becomes true');
   }
   if (prompt.length > 500) {
-    warns.push('Длинный промпт (' + prompt.length + ' символов) — повторяется каждую итерацию');
+    warns.push('long prompt (' + prompt.length + ' chars) \u2014 repeats every iteration');
   }
   warningsEl.textContent = warns.join('\n');
 
-  // Info
   const infoParts = [];
-  if (iterations > 0) infoParts.push('Остановится через ' + iterations + ' итераций');
-  if (promise) infoParts.push('Или по фразе: <promise>' + promise + '</promise>');
-  if (needsQuoting) infoParts.push('Промпт обёрнут в одинарные кавычки (спецсимволы)');
-  infoEl.textContent = infoParts.join(' · ');
+  if (iterations > 0) infoParts.push('stops after ' + iterations + ' iterations');
+  if (promise) infoParts.push('or on: <promise>' + promise + '</promise>');
+  if (needsQuoting) infoParts.push('prompt wrapped in single quotes');
+  infoEl.textContent = infoParts.join(' \u00b7 ');
 }
 
 function copyCommand() {
