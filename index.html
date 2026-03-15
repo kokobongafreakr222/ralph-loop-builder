@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ralph Loop Builder</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+    background: #0a0a0a;
+    color: #e0e0e0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+  .container { width: 100%; max-width: 640px; }
+  h1 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 32px;
+    color: #fff;
+    letter-spacing: -0.02em;
+  }
+  h1 span { color: #666; font-weight: 400; }
+  .field { margin-bottom: 24px; }
+  label {
+    display: block;
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  label .hint { color: #555; text-transform: none; letter-spacing: 0; }
+  textarea, input[type="text"], input[type="number"] {
+    width: 100%;
+    background: #141414;
+    border: 1px solid #2a2a2a;
+    color: #e0e0e0;
+    font-family: inherit;
+    font-size: 14px;
+    padding: 12px;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  textarea:focus, input:focus { border-color: #444; }
+  textarea { resize: vertical; min-height: 100px; line-height: 1.5; }
+  input[type="number"] { max-width: 120px; -moz-appearance: textfield; }
+  input[type="number"]::-webkit-inner-spin-button { opacity: 1; }
+  .row { display: flex; gap: 20px; }
+  .row .field { flex: 1; }
+  .output-area { margin-top: 32px; border-top: 1px solid #1a1a1a; padding-top: 24px; }
+  .output-label {
+    font-size: 12px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .copy-btn {
+    background: none;
+    border: 1px solid #333;
+    color: #aaa;
+    font-family: inherit;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .copy-btn:hover { border-color: #555; color: #fff; }
+  .copy-btn.copied { border-color: #2d5a2d; color: #5a5; }
+  .command-box {
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 6px;
+    padding: 16px;
+    font-size: 13px;
+    line-height: 1.6;
+    word-break: break-all;
+    white-space: pre-wrap;
+    min-height: 48px;
+    color: #ccc;
+  }
+  .cmd { color: #7ab; }
+  .arg { color: #b97; }
+  .flag { color: #7a7; }
+  .val { color: #b7b; }
+  .warnings { margin-top: 12px; font-size: 12px; color: #a77; line-height: 1.5; }
+  .warnings:empty { display: none; }
+  .preview-info { margin-top: 16px; font-size: 11px; color: #555; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Ralph Loop Builder <span>v1.1.0</span></h1>
+  <div class="field">
+    <label>Промпт <span class="hint">— задача для Claude</span></label>
+    <textarea id="prompt" placeholder="Рефактори модуль /Users/malovnik/Documents/Dev/project/src/auth.ts и покрой тестами"></textarea>
+  </div>
+  <div class="row">
+    <div class="field">
+      <label>Итерации <span class="hint">— 0 = бесконечно</span></label>
+      <input type="number" id="iterations" value="10" min="0" max="999">
+    </div>
+    <div class="field">
+      <label>Стоп-фраза <span class="hint">— пусто = нет</span></label>
+      <input type="text" id="promise" placeholder="Все тесты проходят">
+    </div>
+  </div>
+  <div class="output-area">
+    <div class="output-label">
+      Команда
+      <button class="copy-btn" id="copyBtn">Copy</button>
+    </div>
+    <div class="command-box" id="output"></div>
+    <div class="warnings" id="warnings"></div>
+    <div class="preview-info" id="info"></div>
+  </div>
+</div>
+<script>
+const promptEl = document.getElementById('prompt');
+const iterEl = document.getElementById('iterations');
+const promiseEl = document.getElementById('promise');
+const outputEl = document.getElementById('output');
+const warningsEl = document.getElementById('warnings');
+const infoEl = document.getElementById('info');
+const copyBtn = document.getElementById('copyBtn');
+
+function escapeForShell(str) {
+  return "'" + str.replace(/'/g, "'\\''") + "'";
+}
+
+function span(cls, text) {
+  const el = document.createElement('span');
+  el.className = cls;
+  el.textContent = text;
+  return el;
+}
+
+function buildCommand() {
+  const prompt = promptEl.value.trim();
+  const iterations = parseInt(iterEl.value) || 0;
+  const promise = promiseEl.value.trim();
+
+  outputEl.textContent = '';
+  warningsEl.textContent = '';
+  infoEl.textContent = '';
+
+  if (!prompt) {
+    outputEl.textContent = 'Введи промпт...';
+    outputEl.style.color = '#555';
+    return;
+  }
+  outputEl.style.color = '';
+
+  const needsQuoting = /['"$`\\!{}()|<>&;\n\t #~]/.test(prompt);
+  const promiseNeedsQuoting = promise && /['"$`\\!{}()|<>&;\n\t #~]/.test(promise);
+
+  // Build DOM
+  outputEl.appendChild(span('cmd', '/ralph-loop:ralph-loop'));
+  outputEl.appendChild(document.createTextNode(' '));
+
+  if (needsQuoting) {
+    outputEl.appendChild(span('arg', escapeForShell(prompt)));
+  } else {
+    outputEl.appendChild(span('arg', prompt));
+  }
+
+  if (iterations > 0) {
+    outputEl.appendChild(document.createTextNode(' '));
+    outputEl.appendChild(span('flag', '--max-iterations'));
+    outputEl.appendChild(document.createTextNode(' '));
+    outputEl.appendChild(span('val', String(iterations)));
+  }
+
+  if (promise) {
+    outputEl.appendChild(document.createTextNode(' '));
+    outputEl.appendChild(span('flag', '--completion-promise'));
+    outputEl.appendChild(document.createTextNode(' '));
+    if (promiseNeedsQuoting) {
+      outputEl.appendChild(span('val', escapeForShell(promise)));
+    } else {
+      outputEl.appendChild(span('val', "'" + promise + "'"));
+    }
+  }
+
+  // Warnings
+  const warns = [];
+  if (iterations === 0 && !promise) {
+    warns.push('Бесконечный цикл без стоп-фразы. Остановить только через /cancel-ralph');
+  }
+  if (iterations === 0 && promise) {
+    warns.push('Без лимита итераций — крутится пока стоп-фраза не станет правдой');
+  }
+  if (prompt.length > 500) {
+    warns.push('Длинный промпт (' + prompt.length + ' символов) — повторяется каждую итерацию');
+  }
+  warningsEl.textContent = warns.join('\n');
+
+  // Info
+  const infoParts = [];
+  if (iterations > 0) infoParts.push('Остановится через ' + iterations + ' итераций');
+  if (promise) infoParts.push('Или по фразе: <promise>' + promise + '</promise>');
+  if (needsQuoting) infoParts.push('Промпт обёрнут в одинарные кавычки (спецсимволы)');
+  infoEl.textContent = infoParts.join(' · ');
+}
+
+function copyCommand() {
+  const text = outputEl.textContent;
+  navigator.clipboard.writeText(text).then(function() {
+    copyBtn.textContent = 'Copied';
+    copyBtn.classList.add('copied');
+    setTimeout(function() {
+      copyBtn.textContent = 'Copy';
+      copyBtn.classList.remove('copied');
+    }, 1500);
+  });
+}
+
+promptEl.addEventListener('input', buildCommand);
+iterEl.addEventListener('input', buildCommand);
+promiseEl.addEventListener('input', buildCommand);
+copyBtn.addEventListener('click', copyCommand);
+
+buildCommand();
+</script>
+</body>
+</html>
