@@ -414,7 +414,7 @@ function buildCommand() {
 }
 
 function copyCommand() {
-  const text = outputEl.textContent;
+  const text = outputEl.textContent.replace(/[\n\r\t]/g, ' ').replace(/ {2,}/g, ' ').trim();
   navigator.clipboard.writeText(text).then(function() {
     copyBtn.textContent = 'Copied';
     copyBtn.classList.add('copied');
