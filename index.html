@@ -289,7 +289,7 @@
 <div class="container">
   <div class="header">
     <h1>Ralph Loop</h1>
-    <span class="version">v1.1.0</span>
+    <span class="version">v1.2.0</span>
     <div class="status-dot"></div>
   </div>
 
@@ -309,6 +309,16 @@
     </div>
   </div>
 
+  <div class="row">
+    <div class="field">
+      <label>Compact every <span class="hint">— 0 = off, requires tmux</span></label>
+      <input type="number" id="compactEvery" value="0" min="0" max="999">
+    </div>
+    <div class="field" style="display:flex;align-items:flex-end;padding-bottom:28px;">
+      <span style="font-size:10px;color:var(--text-muted);line-height:1.5;">Auto-compact context every N cycles via tmux send-keys</span>
+    </div>
+  </div>
+
   <div class="output-area">
     <div class="output-label">
       Command
@@ -321,7 +331,7 @@
 
   <div class="footer">
     <span>ralph-loop-local@local</span>
-    <a href="https://github.com/kokobongafreakr222/ralph-loop" target="_blank">github</a>
+    <a href="https://github.com/malovnik/ralph-loop" target="_blank">github</a>
   </div>
 </div>
 
@@ -329,6 +339,7 @@
 const promptEl = document.getElementById('prompt');
 const iterEl = document.getElementById('iterations');
 const promiseEl = document.getElementById('promise');
+const compactEl = document.getElementById('compactEvery');
 const outputEl = document.getElementById('output');
 const warningsEl = document.getElementById('warnings');
 const infoEl = document.getElementById('info');
@@ -349,6 +360,7 @@ function buildCommand() {
   const prompt = promptEl.value.trim();
   const iterations = parseInt(iterEl.value) || 0;
   const promise = promiseEl.value.trim();
+  const compactEvery = parseInt(compactEl.value) || 0;
 
   outputEl.textContent = '';
   warningsEl.textContent = '';
@@ -394,6 +406,13 @@ function buildCommand() {
     }
   }
 
+  if (compactEvery > 0) {
+    outputEl.appendChild(document.createTextNode(' '));
+    outputEl.appendChild(span('flag', '--compact-every'));
+    outputEl.appendChild(document.createTextNode(' '));
+    outputEl.appendChild(span('val', String(compactEvery)));
+  }
+
   const warns = [];
   if (iterations === 0 && !promise) {
     warns.push('infinite loop without stop phrase \u2014 only /cancel-ralph stops it');
@@ -404,11 +423,18 @@ function buildCommand() {
   if (prompt.length > 500) {
     warns.push('long prompt (' + prompt.length + ' chars) \u2014 repeats every iteration');
   }
+  if (compactEvery > 0) {
+    warns.push('compact requires tmux \u2014 run Claude inside tmux session');
+  }
+  if (compactEvery > 0 && iterations > 0 && compactEvery >= iterations) {
+    warns.push('compact-every \u2265 max-iterations \u2014 compact will never trigger');
+  }
   warningsEl.textContent = warns.join('\n');
 
   const infoParts = [];
   if (iterations > 0) infoParts.push('stops after ' + iterations + ' iterations');
   if (promise) infoParts.push('or on: <promise>' + promise + '</promise>');
+  if (compactEvery > 0) infoParts.push('auto-compact every ' + compactEvery + ' cycles');
   if (needsQuoting) infoParts.push('prompt wrapped in single quotes');
   infoEl.textContent = infoParts.join(' \u00b7 ');
 }
@@ -428,6 +454,7 @@ function copyCommand() {
 promptEl.addEventListener('input', buildCommand);
 iterEl.addEventListener('input', buildCommand);
 promiseEl.addEventListener('input', buildCommand);
+compactEl.addEventListener('input', buildCommand);
 copyBtn.addEventListener('click', copyCommand);
 
 buildCommand();
